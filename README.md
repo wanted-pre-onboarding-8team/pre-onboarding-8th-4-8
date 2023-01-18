@@ -169,36 +169,62 @@ useEffect(() => {
 
 <br>
 
-### 3. 키보드만으로 추천 검색어들로 이동 가능하도록 구현
+### 4. 리덕스 비동기 처리
 
 <br>
 
-**Component**
-
-* 검색창에 **onKeyDown 이벤트**를 사용하여 키보드의 위(ArrouUP), 아래(ArrowDown) 버튼의 이동에 따라 **recommendWordIndex** State 값을 바꿔주어 추천 검색어의 키보드 이동이 가능하도록 구현
+* 리덕스 슬라이스 파일 내에 비동기 처리
 
 ```javascript
 
-const onKeyPress = e => {
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      console.log(recommendWordIndex);
-      // 첫 키 입력 시
-      if (recommendWordIndex === null) {
-        dispatch(OPERATION_RECOMMEND_WORD_INDEX(0));
+extraReducers: builder => {
+    builder.addCase(GET_COMMENTS_LENGTH.fulfilled, (state, action) => {
+      const commentsLength = action.payload.length / state.pageLimit;
+
+      if (Number.isInteger(commentsLength)) {
+        state.commentsLength = commentsLength;
+      } else {
+        state.commentsLength = Math.ceil(commentsLength);
       }
-      // 맨 위에서 위, 맨 아래에서 아래를 눌렀을 때 아무것도 안함
-      else if (recommendWordIndex === 0 && e.key === 'ArrowUp') {
-        return;
-      } else if (recommendWordIndex === sickList.length - 1 && e.key === 'ArrowDown') {
-        return;
-      }
-      // 키 입력시 증감
-      else {
-        dispatch(OPERATION_RECOMMEND_WORD_INDEX(e.key));
-      }
-    }
-  };
+    });
+
+    builder.addCase(GET_COMMENTS_CURRENT_PAGE.fulfilled, (state, action) => {
+      state.comments = action.payload.comments;
+      state.currentPageNumber = Number(action.payload.pageNumber);
+    });
+
+    builder.addCase(ADD_COMMENT.fulfilled, state => {
+      state.currentPageNumber = 1;
+    });
+  },
   
 ```
+
+* 비동기 처리 파일은 따로 빼둠
+
+```javascript
+
+export const GET_COMMENTS_LENGTH = createAsyncThunk('GET_COMMENTS_LENGTH', async () => {
+  const res = await getComments();
+  return res.data;
+});
+
+export const GET_COMMENTS_CURRENT_PAGE = createAsyncThunk('GET_COMMENTS_CURRENT_PAGE', async pageNumber => {
+  const res = await getCommentsPagination(pageNumber);
+  const comments = res.data;
+  return { comments, pageNumber };
+});
+
+export const MODIFY_COMMENT = createAsyncThunk('MODIFY_COMMENT', async info => {
+  await modifyComment(info);
+});
+
+export const ADD_COMMENT = createAsyncThunk('ADD_COMMENT', async info => {
+  await addComment(info);
+});
+
+
+```
+
 
 <br>
