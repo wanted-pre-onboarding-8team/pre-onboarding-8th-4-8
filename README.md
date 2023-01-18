@@ -1,24 +1,28 @@
-# 📝  검색어 추천기능 구현하기
+# 📝 Comment 목록 CRUD 및 Pagination 구현
+
 
 <!-- <p align="middle">
 <img src="./screenshot.png" />
 </p> -->
 
 ## 📄목차
+
 ---
-  - [📚 사용 라이브러리](#-사용-라이브러리)
-  - [🏃‍♂️ 실행방법](#️-실행방법)
-  - [💡 구현목표](#💡-구현-목표)
-    - [1. 질환명 검색시 API 호출 통해서 검색어 추천 기능 구현 ](#1-질환명-검색시-api-호출-통해서-검색어-추천-기능-구현)
-    - [2. API 호출 최적화](#2-api-호출-최적화)
-    - [3. 키보드만으로 추천 검색어들로 이동 가능하도록 구현](#3-키보드만으로-추천-검색어들로-이동-가능하도록-구현)
+- [📚 사용 라이브러리](#-사용-라이브러리)
+- [🏃‍♂️ 실행방법](#️-실행방법)
+- [💡 구현목표](#💡-구현-목표)
+  - [1. 댓글 프로젝트 CRUD ](#1-댓글-프로젝트-crud)
+  - [2. Pagination](#2-pagination)
+  - [3. 리덕스 비동기 처리](#3-리덕스-비동기-처리)
 
 <br>
 
 <br>
 
 ## 📚 사용 라이브러리
+
 ---
+
 <div align="center">
   
 <img src="https://img.shields.io/badge/Redux-7347B6?style=for-the-badge&logo=Redux&logoColor=white" />
@@ -33,147 +37,241 @@
 <br>
 
 ## 🏃‍♂️ 실행방법
-----
+
+---
+
 - 의존성 package 설치
+
 ```
 yarn
 ```
+
 - 브라우저 실행
+
 ```
 yarn start
 ```
+
 - json-server 실행
+
 ```
-yarn server
+yarn api
 ```
 
 <br>
 
 ## 💡 구현 목표
----
- <h3> 
 
- **[한국 임상 정보](https://clinicaltrialskorea.com/) 페이지의 검색영역 클론하기**
+---
+
+ <h3>
+
+**API 서버와 통신하여 작동하는 댓글 프로젝트를 Redux를 통해 구현하기**
+
  </h3>
 
-  - **질환명 검색시 API 호출 통해서 검색어 추천 기능 구현**
+- **댓글 불러오기, 작성, 수정, 삭제가 동작하도록 기능 구현 ( CRUD )**
 
-  - **API 호출 최적화**
-  
-  - **키보드만으로 추천 검색어들로 이동 가능하도록 구현**
-  <br>
+- **페이지네이션 구현**
+
+    <br>
 
 ---
+
 <br>
 
-### 1. 질환명 검색시 API 호출 통해서 검색어 추천 기능 구현 
+### 1. 댓글 프로젝트 CRUD
 
 <br>
   
-  * 사용자가 입력한 텍스트와 일치하는 부분 볼드처리
-  * 검색어가 없을 시 “검색어 없음” 표출
+- **추가 조건 ( 댓글 작성, 수정, 삭제 후 동작 )**
+  - 댓글 작성하고 난 뒤: 다른 페이지에 위치하고 있었더라도 1페이지로 이동, 입력 폼 초기화
+  - 댓글 수정하고 난 뒤: 현재 보고있는 페이지 유지, 입력 폼 초기화
+  - 삭제하고 난 뒤: 1페이지로 이동
 
 <br>
 
 **Component**
 
-  * 각 '추천 검색어'의 문자열을 '사용자가 입력한 텍스트( SearchWord )' 를 기준으로  split 메서드를 사용하여 나누어준 후, SearchWord 부분에만 CSS 처리를 해주어 Bold 효과를 줌
+- 댓글 Create과 Update의 경우, Redux를 통해 '수정모드(modifyMode)' 여부(T/F)를 전역적으로 관리 하여 'Form.js' Component를 공통으로 사용하도록 구현
 
 ```javascript
+function Form() {
+  const dispatch = useDispatch();
+  const { modifyMode, modifySelectInfo, currentPageNumber } = useSelector(
+    (state) => state.comment
+  );
+  const { goToPage1 } = useComment();
+ ...
 
-const RelatedSearchTerm = ({ name, idx }) => {
-  const { searchWord, recommendWordIndex } = useSelector(state => state.search);
-  const _name = name.split(searchWord);
+  const inputReset = useCallback(() => {
+    setProfileURL("");
+    setAuthor("");
+    setContent("");
+    setCreateAt("");
+  }, [setAuthor, setContent, setCreateAt, setProfileURL]);
+
+  const onSubmitComment = (e) => {
+  ...
+    if (modifyMode) {
+      dispatch(MODIFY_COMMENT({ id: modifySelectInfo.id, infoData }));
+      dispatch(GET_COMMENTS_CURRENT_PAGE(currentPageNumber));
+      dispatch(SET_MODIFY_MODE(modifySelectInfo.id));
+      inputReset();
+    } else {
+      dispatch(ADD_COMMENT(infoData));
+      inputReset();
+      goToPage1(); // 댓글 작성 후 1페이지로 이동
+    }
+  };
+
+  // 수정 버튼 눌렀을 때 입력 폼 value 변경
+  useEffect(() => {
+    setProfileURL(modifySelectInfo.profile_url);
+    setAuthor(modifySelectInfo.author);
+    setContent(modifySelectInfo.content);
+    setCreateAt(modifySelectInfo.createdAt);
+  }, [
+    modifyMode,
+    modifySelectInfo,
+    setAuthor,
+    setContent,
+    setCreateAt,
+    setProfileURL,
+  ]);
+
+  // 수정모드가 꺼졌을 때 입력 폼 초기화
+  useEffect(() => {
+    if (!modifyMode) {
+      inputReset();
+    }
+  }, [modifyMode, inputReset]);
 
   return (
-    <List className={idx === recommendWordIndex ? 'over' : ''}>
-      <FontAwesomeIcon icon={faMagnifyingGlass} />
-      <Name>
-        <span>{_name[0]}</span>
-        {_name[0][_name[0].length - 1] === ' ' ? (
-          <BoldName>&nbsp;{searchWord}</BoldName>
-        ) : (
-          <BoldName>{searchWord}</BoldName>
-        )}
-        <span>{_name[1]}</span>
-      </Name>
-    </List>
+    <FormStyle>
+      <form>
+      ...
+        <button type="submit" onClick={onSubmitComment}>
+          {modifyMode ? "수정하기" : "등록하기"}
+        </button>
+        {modifyMode && <div>선택된 id : {modifySelectInfo.id}</div>}
+      </form>
+    </FormStyle>
+  );
+}
+```
+
+```javascript
+const Comment = ({ info, index }) => {
+  const dispatch = useDispatch();
+  const { comments } = useSelector((state) => state.comment);
+  const { goToPage1 } = useComment();
+
+  const onChageModifyMode = () => {
+    dispatch(SET_MODIFY_MODE(comments[index].id)); //수정 모드를 전역적으로 관리
+    dispatch(SET_MODIFY_SELECTED_INFO(info));
+  };
+
+  const onRemoveComment = (index) => {
+    removeComment(comments[index].id);
+    goToPage1(); //삭제 후 1페이지로 이동
+  };
+
+  return (
+    <CommentDiv>
+      ...
+      <Button>
+        <button onClick={onChageModifyMode}>수정</button>
+        <button
+          onClick={() => {
+            onRemoveComment(index);
+          }}
+        >
+          삭제
+        </button>
+      </Button>
+      <hr />
+    </CommentDiv>
   );
 };
-
 ```
 
 <br>
 
-### 2. API 호출 최적화
+**Hooks**
 
-  - API 호출별로 로컬 캐싱 구현
-      ➡️ 캐싱 기능을 제공하는 라이브러리 사용 금지(React-Query 등)
+- **useComment** Hook을 사용하여 댓글 Create 및 Delete 이후, 1 페이지로 이동하도록 구현
 
-  - 입력마다 API 호출하지 않도록 API 호출 횟수를 줄이는 전략 수립 및 실행
+```javascript
+import { useDispatch } from "react-redux";
+import { GET_COMMENTS_CURRENT_PAGE } from "../slice/thunk/comment";
 
-  - API를 호출할 때 마다 `console.info("calling api")` 출력을 통해 콘솔창에서 API 호출 횟수 확인이 가능하도록 설정
+const useComment = () => {
+  const dispatch = useDispatch();
+
+  const goToPage1 = () => {
+    dispatch(GET_COMMENTS_CURRENT_PAGE(1));
+  };
+
+  return { goToPage1 };
+};
+
+export default useComment;
+```
 
 <br>
+
+### 2. Pagination
+
+<br>
+
+- json-server 라이브러리를 사용하여 구현
+  - API 호출 예시:
+    - 한페이지에 4개의 게시물이 보이고, 최근 게시물부터 정렬해서 3페이지를 보고 싶은 경우   
+      ➡️ GET `/comments?_page=3&_limit=4&_order=desc&_sort=id`
+      <br>
 
 **Component**
- 
- * **Cache API**를 사용하여 로컬 캐싱 기능 구현
 
- * 로컬 브라우저의 **cacheStorage**에 이전에 호출하여 저장한 API URL과 현재 요청한 API URL을 비교한 후, 두 URL이 matching 될 경우 **캐싱 데이터**를 사용하고, matching 되지 않을 경우 **API 호출**하도록 구현
-  
+- map 메서드를 사용하여 전체 페이지 버튼들을 생성한 후, 각 페이지 버튼을 누를 때마다 dispatch( 'GET_COMMENTS_CURRENT_PAGE' )를 보내 해당 페이지의 정보를 가져오도록 구현
 
 ```javascript
+function PageList() {
+  const dispatch = useDispatch();
+  const { currentPageNumber, commentsLength } = useSelector(
+    (state) => state.comment
+  );
 
-const handleSearchSick = useCallback(async () => {
-    const URL = `http://localhost:4000/sick?q=${searchWord}`;
-    const cacheStorage = await caches.open('search');
-    const responseCache = await cacheStorage.match(URL);
+  const onPageMove = (e) => {
+    console.log(e.target.innerHTML);
+    dispatch(GET_COMMENTS_CURRENT_PAGE(e.target.innerHTML));
+  };
 
-    // 브라우저 캐시 스토리지에 있을 경우
-    if (responseCache?.status === 200) {
-      await cacheStorage
-        .match(URL)
-        .then(res => res.json())
-        .then(sickList => setSickList(sickList));
-    }
-    // 브라우저 캐시 스토리지에 없을 경우
-    else {
-      await getSick(searchWord).then(res => {
-        setSickList(res.data);
-        cacheStorage.put(URL, new Response(JSON.stringify(res.data)));
-      });
-    }
-  }, [searchWord]);
-
-```
-* **'useSearch' Hook** 에서 Debounce 기능을 넣어 각 입력 사이에 delay(500ms)를 주어, API 호출 횟수를 줄임
-
-
-```javascript
-
-useEffect(() => {
-    if (!!searchWord) setSickList([]);
-
-    const debounce = setTimeout(() => {
-      handleSearchSick();
-      setInputEntering(false);
-    }, 500);
-
-    return () => {
-      clearTimeout(debounce);
-    };
-  }, [searchWord, handleSearchSick]);
-
+  return (
+    <PageListStyle>
+      {Array(commentsLength)
+        .fill()
+        .map((_, index) => (
+          <Page
+            active={index + 1 === currentPageNumber}
+            key={"key" + index}
+            onClick={onPageMove}
+          >
+            {index + 1}
+          </Page>
+        ))}
+    </PageListStyle>
+  );
+}
 ```
 
 <br>
 
-### 4. 리덕스 비동기 처리
+### 3. 리덕스 비동기 처리
 
 <br>
 
-* 리덕스 슬라이스 파일 내에 비동기 처리
+- 리덕스 슬라이스 파일 내에 비동기 처리
 
 ```javascript
 
@@ -197,34 +295,39 @@ extraReducers: builder => {
       state.currentPageNumber = 1;
     });
   },
-  
+
 ```
 
-* 비동기 처리 파일은 따로 빼둠
+- 비동기 처리 파일은 따로 빼둠
 
 ```javascript
+export const GET_COMMENTS_LENGTH = createAsyncThunk(
+  "GET_COMMENTS_LENGTH",
+  async () => {
+    const res = await getComments();
+    return res.data;
+  }
+);
 
-export const GET_COMMENTS_LENGTH = createAsyncThunk('GET_COMMENTS_LENGTH', async () => {
-  const res = await getComments();
-  return res.data;
-});
+export const GET_COMMENTS_CURRENT_PAGE = createAsyncThunk(
+  "GET_COMMENTS_CURRENT_PAGE",
+  async (pageNumber) => {
+    const res = await getCommentsPagination(pageNumber);
+    const comments = res.data;
+    return { comments, pageNumber };
+  }
+);
 
-export const GET_COMMENTS_CURRENT_PAGE = createAsyncThunk('GET_COMMENTS_CURRENT_PAGE', async pageNumber => {
-  const res = await getCommentsPagination(pageNumber);
-  const comments = res.data;
-  return { comments, pageNumber };
-});
+export const MODIFY_COMMENT = createAsyncThunk(
+  "MODIFY_COMMENT",
+  async (info) => {
+    await modifyComment(info);
+  }
+);
 
-export const MODIFY_COMMENT = createAsyncThunk('MODIFY_COMMENT', async info => {
-  await modifyComment(info);
-});
-
-export const ADD_COMMENT = createAsyncThunk('ADD_COMMENT', async info => {
+export const ADD_COMMENT = createAsyncThunk("ADD_COMMENT", async (info) => {
   await addComment(info);
 });
-
-
 ```
-
 
 <br>
