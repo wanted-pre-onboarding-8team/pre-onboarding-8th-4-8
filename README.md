@@ -265,6 +265,13 @@ function PageList() {
 }
 ```
 
+  **api**
+
+```javascript
+export const getCommentsPagination = async pageNumber => {
+  return await instance.get(`/comments?_page=${pageNumber}&_limit=5&_order=desc&_sort=id`);
+};
+```
 <br>
 
 ### 3. 리덕스 비동기 처리
