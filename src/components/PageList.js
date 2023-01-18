@@ -1,5 +1,29 @@
-import React from "react";
-import styled from "styled-components";
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import styled from 'styled-components';
+import { GET_COMMENTS_CURRENT_PAGE } from '../slice/thunk/comment';
+
+function PageList() {
+  const dispatch = useDispatch();
+  const { currentPageNumber, commentsLength } = useSelector(state => state.comment);
+
+  const onPageMove = e => {
+    console.log(e.target.innerHTML);
+    dispatch(GET_COMMENTS_CURRENT_PAGE(e.target.innerHTML));
+  };
+
+  return (
+    <PageListStyle>
+      {Array(commentsLength)
+        .fill()
+        .map((_, index) => (
+          <Page active={index + 1 === currentPageNumber} key={'key' + index} onClick={onPageMove}>
+            {index + 1}
+          </Page>
+        ))}
+    </PageListStyle>
+  );
+}
 
 const PageListStyle = styled.div`
   margin-bottom: 20px;
@@ -12,24 +36,9 @@ const Page = styled.button`
   font-size: 1rem;
   line-height: 1.5;
   border: 1px solid lightgray;
-  ${({ active }) =>
-    active &&
-    `
-        background: gray;
-        color: #fff;
-  `}
+  background: ${props => (props.active ? 'gray' : '')};
+  color: ${props => (props.active ? '#fff' : '')};
   margin-right: 3px;
 `;
-
-function PageList() {
-  const pageArray = [];
-
-  pageArray.push(
-    // 임시로 페이지 하나만 설정했습니다.
-    <Page key="1">1</Page>
-  );
-
-  return <PageListStyle>{pageArray}</PageListStyle>;
-}
 
 export default PageList;

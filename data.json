@@ -60,15 +60,8 @@
       "id": 9,
       "profile_url": "https://picsum.photos/id/9/50/50",
       "author": "abc_9",
-      "content": "컴포넌트 테스트는 어떻게 하나요.",
+      "content": "컴포넌트 테스트는 어떻게 하나요?",
       "createdAt": "2022-03-09"
-    },
-    {
-      "id": 10,
-      "profile_url": "https://picsum.photos/id/10/50/50",
-      "author": "abc_10",
-      "content": "storybook은 무엇인가요.",
-      "createdAt": "2022-03-10"
     },
     {
       "id": 11,
@@ -95,7 +88,7 @@
       "id": 14,
       "profile_url": "https://picsum.photos/id/14/50/50",
       "author": "abc_14",
-      "content": "Next.js 가이드 주세요.14",
+      "content": "Next.js 가이드 주세요.",
       "createdAt": "2022-03-14"
     },
     {
@@ -130,7 +123,7 @@
       "id": 19,
       "profile_url": "https://picsum.photos/id/19/50/50",
       "author": "abc_19",
-      "content": "막히면 대답은 빨리 해주나요",
+      "content": "막히면 대답은 빨리 해주나요?",
       "createdAt": "2022-03-19"
     },
     {
@@ -151,7 +144,7 @@
       "id": 22,
       "profile_url": "https://picsum.photos/id/22/50/50",
       "author": "abc_22",
-      "content": "주변에 React 개발자 있나요",
+      "content": "주변에 React 개발자 있나요?",
       "createdAt": "2022-03-22"
     }
   ]
